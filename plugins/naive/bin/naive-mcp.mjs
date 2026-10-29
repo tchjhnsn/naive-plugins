@@ -13,6 +13,9 @@ import { createInterface } from "node:readline";
 const cwd = process.cwd();
 const FRAMEWORK = "naive-framework@^0.2";
 const TYPES = ["software-startup", "vc-fund", "services-business", "local-business", "ecommerce", "creator-media", "nonprofit", "holding-company", "side-project"];
+// Each type's roles (schema/venture-types.json): a role outside its type is refused by create-venture.
+const ROLES = {"software-startup": ["founder", "co-founder", "operator", "advisor", "board-member"], "vc-fund": ["general-partner", "limited-partner", "operator", "advisor", "board-member"], "services-business": ["founder", "co-founder", "operator", "advisor"], "local-business": ["founder", "co-founder", "operator", "advisor"], "ecommerce": ["founder", "co-founder", "operator", "advisor", "board-member"], "creator-media": ["founder", "co-founder", "operator", "advisor"], "nonprofit": ["founder", "co-founder", "operator", "advisor", "board-member"], "holding-company": ["founder", "co-founder", "operator", "advisor", "board-member"], "side-project": ["founder", "co-founder"]};
+const LABELS = {"software-startup": "Software startup", "vc-fund": "VC fund or firm", "services-business": "Services business", "local-business": "Local business", "ecommerce": "E-commerce or physical product", "creator-media": "Creator or media", "nonprofit": "Nonprofit", "holding-company": "Holding company", "side-project": "Side project"};
 const npx = process.platform === "win32" ? "npx.cmd" : "npx";
 const out = (m) => process.stdout.write(JSON.stringify(m) + "\n");
 
@@ -48,13 +51,12 @@ function startChild(dir, replay) {
 const NEW_VENTURE = {
   name: "naive_new_venture",
   description: "Create a Naive venture in a new folder here (runs create-venture). Ask the founder for each field first; never guess the name, the people or the type. When it is created, Naive's full tool set appears on this same server: run the naive-setup skill next.",
-  inputSchema: { type: "object", required: ["folder", "name"], properties: {
+  inputSchema: { type: "object", required: ["folder", "name", "type"], properties: {
     folder: { type: "string", description: "A new folder name, such as acme-labs" },
     name: { type: "string", description: "The founder's name" },
     team: { type: "array", items: { type: "string" }, description: "Everyone else founding it, by name" },
-    type: { enum: TYPES, description: "The venture type, when the founder picked one" },
-    describe: { type: "string", description: "What the venture is in a few words, when no type was picked" },
-    role: { type: "string", description: "The founder's role, such as founder or investor" },
+    type: { enum: TYPES, description: `The venture type the founder confirmed: ${TYPES.map((t) => `${t} (${LABELS[t]})`).join(", ")}. Map their words to one and confirm it with them` },
+    role: { type: "string", description: `The founder's role, one of the type's roles: ${TYPES.map((t) => `${t}: ${ROLES[t].join(", ")}`).join("; ")}. Leave it out for the type's first role` },
     sources: { type: "array", items: { type: "string" }, description: "Where a function keeps its truth, as function=system, such as finance=rho" } } },
 };
 
@@ -62,7 +64,9 @@ function createVenture(a) {
   if (!/^[A-Za-z0-9._-]+$/.test(a.folder ?? "")) return { error: "folder must be a plain folder name, such as acme-labs" };
   const args = ["-y", "create-venture@latest", a.folder, "--yes", "--name", a.name];
   if (a.team?.length) args.push("--team", a.team.join(", "));
-  if (a.type) args.push("--type", a.type); else if (a.describe) args.push("--describe", a.describe);
+  if (!TYPES.includes(a.type)) return { error: `type must be one of ${TYPES.join(", ")}` };
+  if (a.role && !ROLES[a.type].includes(a.role)) return { error: `a ${LABELS[a.type].toLowerCase()} has no ${a.role} role: one of ${ROLES[a.type].join(", ")}` };
+  args.push("--type", a.type);
   if (a.role) args.push("--role", a.role);
   for (const s of a.sources ?? []) args.push("--source", s);
   const r = spawnSync(npx, args, { cwd, encoding: "utf8", shell: process.platform === "win32", timeout: 600000 });
