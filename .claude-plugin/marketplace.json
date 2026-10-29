@@ -1,0 +1,14 @@
+{
+  "name": "naive",
+  "description": "Naive, the AI-native venture development framework, as a Claude Code plugin.",
+  "owner": {
+    "name": "Torian Johnson"
+  },
+  "plugins": [
+    {
+      "name": "naive",
+      "source": "./plugins/naive",
+      "description": "Naive for Claude Code: the MCP tools, venture creation and setup in conversation."
+    }
+  ]
+}
