@@ -50,9 +50,10 @@ function startChild(dir, replay) {
 
 const NEW_VENTURE = {
   name: "naive_new_venture",
-  description: "Create a Naive venture in a new folder here (runs create-venture). Ask the founder for each field first; never guess the name, the people or the type. When it is created, Naive's full tool set appears on this same server: run the naive-setup skill next.",
-  inputSchema: { type: "object", required: ["folder", "name", "type"], properties: {
-    folder: { type: "string", description: "A new folder name, such as acme-labs" },
+  description: "Create a Naive venture in a new folder here (runs create-venture). This folder becomes the founder's Naive workspace (naive-workspace.json, named Naive workspace until they rename it). Ask the founder for each field first; never guess the people or the type. A venture they have not named is My first venture, in my-first-venture/. When it is created, Naive's full tool set appears on this same server: run the naive-setup skill next.",
+  inputSchema: { type: "object", required: ["name", "type"], properties: {
+    venture_name: { type: "string", description: "The venture's name, such as Acme Labs. Leave it out for My first venture" },
+    folder: { type: "string", description: "A new folder name, such as acme-labs. Leave it out to derive it from the venture's name" },
     name: { type: "string", description: "The founder's name" },
     team: { type: "array", items: { type: "string" }, description: "Everyone else founding it, by name" },
     type: { enum: TYPES, description: `The venture type the founder confirmed: ${TYPES.map((t) => `${t} (${LABELS[t]})`).join(", ")}. Map their words to one and confirm it with them` },
@@ -61,8 +62,11 @@ const NEW_VENTURE = {
 };
 
 function createVenture(a) {
-  if (!/^[A-Za-z0-9._-]+$/.test(a.folder ?? "")) return { error: "folder must be a plain folder name, such as acme-labs" };
-  const args = ["-y", "create-venture@latest", a.folder, "--yes", "--name", a.name];
+  const ventureName = a.venture_name?.trim() || "My first venture";
+  a.folder ??= ventureName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (!/^[A-Za-z0-9._-]+$/.test(a.folder)) return { error: "folder must be a plain folder name, such as acme-labs" };
+  // --venture-name needs a create-venture 0.3.0 or later, which also writes the workspace file.
+  const args = ["-y", "create-venture@latest", a.folder, "--yes", "--name", a.name, "--venture-name", ventureName];
   if (a.team?.length) args.push("--team", a.team.join(", "));
   if (!TYPES.includes(a.type)) return { error: `type must be one of ${TYPES.join(", ")}` };
   if (a.role && !ROLES[a.type].includes(a.role)) return { error: `a ${LABELS[a.type].toLowerCase()} has no ${a.role} role: one of ${ROLES[a.type].join(", ")}` };

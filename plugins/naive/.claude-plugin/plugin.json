@@ -1,6 +1,6 @@
 {
   "name": "naive",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Naive, the AI-native venture development framework: create a venture, set it up in conversation, and work its records and decisions through Naive's MCP tools.",
   "author": {
     "name": "Torian Johnson"
